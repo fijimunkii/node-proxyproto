@@ -1,0 +1,34 @@
+{
+  "name": "proxy-protocol-parser",
+  "version": "0.0.1",
+  "description": "PROXY Protocol parser",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./node_modules/.bin/tap test --jobs=10 --coverage-report=html --no-browser"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fijimunkii/proxy-protocol-parser.git"
+  },
+  "keywords": [
+    "proxy",
+    "proxy-protocol",
+    "proxy-proto",
+    "proto",
+    "proxy-protocol-v1",
+    "proxy-protocol-v2"
+  ],
+  "author": "Harrison Powers",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fijimunkii/proxy-protocol-parser/issues"
+  },
+  "homepage": "https://github.com/fijimunkii/proxy-protocol-parser#readme",
+  "dependencies": {
+    "proxy-protocol-v2": "1.0.0-dev-81558e614b7b74d65747e240365e573becdd8c73"
+  },
+  "devDependencies": {
+    "pem": "^1.14.2",
+    "tap": "^12.6.0"
+  }
+}
