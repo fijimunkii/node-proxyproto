@@ -1,0 +1,38 @@
+{
+  "name": "proxyproto",
+  "version": "1.0.0",
+  "description": "Pre-process PROXY protocol headers from node tcp connections",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./node_modules/.bin/tap test --jobs=10 --coverage-report=html --no-browser"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fijimunkii/node-proxyproto.git"
+  },
+  "keywords": [
+    "proxy",
+    "proto",
+    "proxy-protocol",
+    "proxyprotocol",
+    "proxy-proto",
+    "proxyproto",
+    "proxy-protocol-v1",
+    "proxy-protocol-v2",
+    "proxyprotocolv1",
+    "proxyprotocolv2"
+  ],
+  "author": "Harrison Powers",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fijimunkii/node-proxyproto/issues"
+  },
+  "homepage": "https://github.com/fijimunkii/node-proxyproto#readme",
+  "dependencies": {
+    "proxy-protocol-v2": "1.0.0-dev-81558e614b7b74d65747e240365e573becdd8c73"
+  },
+  "devDependencies": {
+    "pem": "^1.14.2",
+    "tap": "^12.6.0"
+  }
+}
