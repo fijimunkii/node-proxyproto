@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  app:
+   build:
+     dockerfile: Dockerfile
+   ports:
+     - 5555
+   networks:
+     - web
+
+  proxy:
+    image: dockercloud/haproxy
+    depends_on:
+      - app
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - web
+
+networks:
+  web:
+    driver: overlay
