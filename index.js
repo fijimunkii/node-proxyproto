@@ -20,14 +20,8 @@ const createServer = (server, options) => {
       const error = String(err);
       if (err && err.code === 'ECONNRESET') {
         return console.log(`${source} Connection interrupted`);
-      } else if (error.includes('peer did not return a certificate')) {
-        return console.log(`${source} Connection dropped - Client certificate required but not presented`);
-      } else if (error.includes('inappropriate fallback') ||
-                 error.includes('version too low') ||
-                 error.includes('no shared cipher')) {
-        return console.log(`${source} Connection dropped - Client used insecure cipher`);
-      } else if (error.includes('unknown protocol')) {
-        return console.log(`${source} Connection dropped - Client used unknown protocol`);
+      } else if (error.includes('SSL routines')) {
+        return console.log(`${source} Connection dropped - ssl routines failed: ${error}`);
       }
     }
     if (options.onError) {
