@@ -1,7 +1,7 @@
 # node-proxyproto
 Pre-process PROXY protocol headers from node tcp connections
 
-[![License: ISC](https://img.shields.io/npm/l/proxy-proto.svg)](https://opensource.org/licenses/ISC)
+[![License: ISC](https://img.shields.io/npm/l/proxyproto.svg)](https://opensource.org/licenses/ISC)
 
 This will allow a regular node server to accept PROXY protocol connections
 
