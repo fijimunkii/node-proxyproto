@@ -12,13 +12,25 @@ const createServer = (server, options) => {
   options = options || {};
 
   function onError(err, source) {
-    if (err && err.code === 'ECONNRESET') {
-      console.log(`${source} Connection interrupted`);
-    } else if (options.onError) {
-      options.onError(err, source);
-    } else {
-      throw err;
+    // handle common socket errors
+    if (!options.allErrors) {
+      const error = String(err);
+      if (err && err.code === 'ECONNRESET') {
+        return console.log(`${source} Connection interrupted`);
+      } else if (error.includes('peer did not return a certificate')) {
+        return console.log('Connection dropped - Client certificate required but not presented');
+      } else if (error.includes('inappropriate fallback') ||
+                 error.includes('version too low') ||
+                 error.includes('no shared cipher')) {
+        return console.log('Connection dropped - Client used insecure cipher');
+      } else if (error.includes('unknown protocol')) {
+        return console.log('Connection dropped - Client used unknown protocol');
+      }
     }
+    if (options.onError) {
+      return options.onError(err, source);
+    }
+    throw err;
   }
 
   // create proxy protocol processing server
