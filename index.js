@@ -10,15 +10,30 @@ const createServer = (server, options) => {
     throw new Error('Missing server argument - http.createServer(), https, net, tls, etc');
   }
   options = options || {};
+  if (!options.hasOwnProperty('handleCommonErrors')) {
+    options.handleCommonErrors = true;
+  }
 
-  function onError(err) {
-    if (err && err.code === 'ECONNRESET') {
-      console.log('Connection interrupted');
-    } else if (options.onError) {
-      options.onError(err);
-    } else {
-      throw err;
+  function onError(err, source) {
+    // handle common socket errors
+    if (options.handleCommonErrors) {
+      const error = String(err);
+      if (err && err.code === 'ECONNRESET') {
+        return console.log(`${source} Connection interrupted`);
+      } else if (error.includes('peer did not return a certificate')) {
+        return console.log(`${source} Connection dropped - Client certificate required but not presented`);
+      } else if (error.includes('inappropriate fallback') ||
+                 error.includes('version too low') ||
+                 error.includes('no shared cipher')) {
+        return console.log(`${source} Connection dropped - Client used insecure cipher`);
+      } else if (error.includes('unknown protocol')) {
+        return console.log(`${source} Connection dropped - Client used unknown protocol`);
+      }
     }
+    if (options.onError) {
+      return options.onError(err, source);
+    }
+    throw err;
   }
 
   // create proxy protocol processing server
@@ -31,7 +46,7 @@ const createServer = (server, options) => {
     if (options.setNoDelay) {
       connection.setNoDelay(true); // disable nagle algorithm
     }
-    connection.addListener('error', onError);
+    connection.addListener('error', err => onError(err, 'proxyproto socket'));
     connection.addListener('data', onData);
     function onData(buffer) {
       connection.pause();
@@ -65,10 +80,10 @@ const createServer = (server, options) => {
     }
   });
 
-  proxied.on('clientError', onError);
-  proxied.on('error', onError);
-  server.on('clientError', onError);
-  server.on('error', onError);
+  proxied.on('clientError', err => onError(err, 'proxyproto client'));
+  proxied.on('error', err => onError(err, 'proxyproto'));
+  server.on('clientError', err => onError(err, 'server client'));
+  server.on('error', err => onError(err, 'server'));
 
   // if server is tls, prepare child connection
   if (server._sharedCreds) {
@@ -78,14 +93,18 @@ const createServer = (server, options) => {
             get: () => connection._parent[property]
           });
         });
-      connection.addListener('error', onError);
+      connection.addListener('error', err => onError(err, 'secure socket'));
       connection.setKeepAlive(true); // prevent idle timeout ECONNRESET
       if (options.setNoDelay) {
         connection.setNoDelay(true); // disable nagle algorithm
       }
     });
+  } else {
+   server.on('connection', connection => {
+     connection.addListener('error', err => onError(err, 'socket'));
+   });
   }
-  
+
   // if server is already listening, use that port
   if (server.listening) {
     const port = server.address().port;

@@ -20,6 +20,7 @@ All available options:
 ```js
 require('proxyproto').createServer(server, {
   setNoDelay: true, // diable nagle algorithm
+  handleCommonErrors: false, // handle common socket errors (default: true)
   onError: err => log.error(err) // error handler for servers and sockets
 });
 ```
