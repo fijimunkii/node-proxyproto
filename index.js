@@ -11,11 +11,11 @@ const createServer = (server, options) => {
   }
   options = options || {};
 
-  function onError(err) {
+  function onError(err, source) {
     if (err && err.code === 'ECONNRESET') {
-      console.log('Connection interrupted');
+      console.log(`${source} Connection interrupted`);
     } else if (options.onError) {
-      options.onError(err);
+      options.onError(err, source);
     } else {
       throw err;
     }
@@ -31,7 +31,7 @@ const createServer = (server, options) => {
     if (options.setNoDelay) {
       connection.setNoDelay(true); // disable nagle algorithm
     }
-    connection.addListener('error', onError);
+    connection.addListener('error', err => onError(err, 'proxyproto socket'));
     connection.addListener('data', onData);
     function onData(buffer) {
       connection.pause();
@@ -65,10 +65,10 @@ const createServer = (server, options) => {
     }
   });
 
-  proxied.on('clientError', onError);
-  proxied.on('error', onError);
-  server.on('clientError', onError);
-  server.on('error', onError);
+  proxied.on('clientError', err => onError(err, 'proxyproto client'));
+  proxied.on('error', err => onError(err, 'proxyproto'));
+  server.on('clientError', err => onError(err, 'server client'));
+  server.on('error', err => onError(err, 'server'));
 
   // if server is tls, prepare child connection
   if (server._sharedCreds) {
@@ -78,14 +78,18 @@ const createServer = (server, options) => {
             get: () => connection._parent[property]
           });
         });
-      connection.addListener('error', onError);
+      connection.addListener('error', err => onError(err, 'secure socket'));
       connection.setKeepAlive(true); // prevent idle timeout ECONNRESET
       if (options.setNoDelay) {
         connection.setNoDelay(true); // disable nagle algorithm
       }
     });
+  } else {
+   server.on('connection', connection => {
+     connection.addListener('error', err => onError(err, 'socket'));
+   });
   }
-  
+
   // if server is already listening, use that port
   if (server.listening) {
     const port = server.address().port;
