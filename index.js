@@ -10,10 +10,13 @@ const createServer = (server, options) => {
     throw new Error('Missing server argument - http.createServer(), https, net, tls, etc');
   }
   options = options || {};
+  if (!options.hasOwnProperty('handleCommonErrors')) {
+    options.handleCommonErrors = true;
+  }
 
   function onError(err, source) {
     // handle common socket errors
-    if (!options.allErrors) {
+    if (options.handleCommonErrors) {
       const error = String(err);
       if (err && err.code === 'ECONNRESET') {
         return console.log(`${source} Connection interrupted`);
