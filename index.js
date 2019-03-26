@@ -1,4 +1,4 @@
-// pre-process PROXY protocol headers from tcp connections
+// pre-process PROXY protocol headers from tcp sockets
 // https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
 
 const proxyProtoSignature = Buffer.from('0d0a0d0a000d0a515549540a', 'hex')
@@ -31,19 +31,19 @@ const createServer = (server, options) => {
   }
 
   // create proxy protocol processing server
-  const proxied = require('net').createServer(connection => {
+  const proxied = require('net').createServer(socket => {
     const buf = [];
     let bytesRead = 0;
     let proxyProtoLength;
     let isProxyProto;
-    connection.setKeepAlive(true); // prevent idle timeout ECONNRESET
+    socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
     if (options.setNoDelay) {
-      connection.setNoDelay(true); // disable nagle algorithm
+      socket.setNoDelay(true); // disable nagle algorithm
     }
-    connection.addListener('error', err => onError(err, 'proxyproto socket'));
-    connection.addListener('data', onData);
+    socket.addListener('error', err => onError(err, 'proxyproto socket'));
+    socket.addListener('data', onData);
     function onData(buffer) {
-      connection.pause();
+      socket.pause();
       bytesRead += buffer.length;
       buf.push(buffer);
       if (bytesRead > 16 && Buffer.concat(buf).slice(0,12).equals(proxyProtoSignature)) {
@@ -54,23 +54,31 @@ const createServer = (server, options) => {
       }
       // consume data for proxy proto
       if (isProxyProto && bytesRead < proxyProtoLength) {
-        connection.resume();
+        socket.resume();
         return;
       }
       let data = Buffer.concat(buf);
       if (isProxyProto) {
         const details = parser.decode(data.slice(0,proxyProtoLength));
         ['remoteAddress','remotePort'].forEach(property => {
-          Object.defineProperty(connection, property, {
+          Object.defineProperty(socket, property, {
               get: () => details[property]
             });
         });
         data = data.slice(proxyProtoLength);
       }
-      connection.removeListener('data', onData);
-      server.emit('connection', connection);
-      connection._handle.onread(data.length, data);
-      connection.resume();
+      socket.removeListener('data', onData);
+      // pass socket to server, mimic onconnection
+      // https://github.com/nodejs/node/blob/5de804e636ce577b46027a24941163a421ada472/lib/net.js#L1472
+      socket.server = server;
+      socket._server = server;
+      server._connections++;
+      server.emit('connection', socket);
+      // socket.emit('data' does not start handshake for tls or https server
+      // call private method for onStreamRead to start handshake
+      // https://github.com/nodejs/node/blob/5de804e636ce577b46027a24941163a421ada472/lib/net.js#L224
+      socket._handle.onread(data.length, data);
+      socket.resume();
     }
   });
 
@@ -79,23 +87,23 @@ const createServer = (server, options) => {
   server.on('clientError', err => onError(err, 'server client'));
   server.on('error', err => onError(err, 'server'));
 
-  // if server is tls, prepare child connection
+  // if server is tls, prepare child socket
   if (server._sharedCreds) {
-    server.on('secureConnection', connection => {
+    server.on('secureConnection', socket => {
       ['remoteAddress','remotePort'].forEach(property => {
-        Object.defineProperty(connection, property, {
-            get: () => connection._parent[property]
+        Object.defineProperty(socket, property, {
+            get: () => socket._parent[property]
           });
         });
-      connection.addListener('error', err => onError(err, 'secure socket'));
-      connection.setKeepAlive(true); // prevent idle timeout ECONNRESET
+      socket.addListener('error', err => onError(err, 'secure socket'));
+      socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
       if (options.setNoDelay) {
-        connection.setNoDelay(true); // disable nagle algorithm
+        socket.setNoDelay(true); // disable nagle algorithm
       }
     });
   } else {
-   server.on('connection', connection => {
-     connection.addListener('error', err => onError(err, 'socket'));
+   server.on('socket', socket => {
+     socket.addListener('error', err => onError(err, 'socket'));
    });
   }
 
