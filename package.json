@@ -1,7 +1,7 @@
 {
   "name": "proxyproto",
-  "version": "1.0.1",
-  "description": "Pre-process PROXY protocol headers from node tcp connections",
+  "version": "1.0.3",
+  "description": "Pre-process PROXY protocol headers from node tcp sockets",
   "main": "index.js",
   "scripts": {
     "test": "node ./node_modules/.bin/tap test --jobs=10 --coverage-report=html --no-browser"
