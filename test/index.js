@@ -11,11 +11,15 @@ const createCert = require('util').promisify(require('pem').createCertificate);
 
 const httpRequestOptions = { agent: false, rejectUnauthorized: false };
 
-const injectProxyHeaders = app => net.createServer(connection => {
-  connection.pause();
-  app.emit('connection', connection);
-  connection._handle.onread(proxyprotoHeader.length, proxyprotoHeader);
-  connection.resume();
+// simple socket middleman for injecting PROXY proto headers
+const injectProxyHeaders = app => net.createServer(socket => {
+  socket.pause();
+  socket.server = app;
+  socket._server = app;
+  app._connections++;
+  app.emit('connection', socket);
+  socket._handle.onread(proxyprotoHeader.length, proxyprotoHeader);
+  socket.resume();
 });
 
 const PORT = 5555;
