@@ -1,5 +1,5 @@
 # node-proxyproto
-Pre-process PROXY protocol headers from node tcp connections
+Pre-process PROXY protocol headers from node tcp sockets
 
 [![License: ISC](https://img.shields.io/npm/l/proxyproto.svg)](https://opensource.org/licenses/ISC)
 
