@@ -4,10 +4,14 @@ const proxyproto = require('../index');
 // - proxy-protocol-v2 encode has a bug
 const proxyprotoHeader = Buffer.from('0d0a0d0a000d0a515549540a211100542399e1ca0a002485cb3201bb030004c4fb1a1b04003e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', 'hex');
 
+const PORT = 5555;
+
 const net = require('net');
 const http = require('http');
 const https = require('https');
 const createCert = require('util').promisify(require('pem').createCertificate);
+const autocannon = require('autocannon');
+const autocannonConfig = { url: `https://localhost:${PORT}`, connections: 10, duration: 1 };
 
 const httpRequestOptions = { agent: false, rejectUnauthorized: false };
 
@@ -22,15 +26,15 @@ const injectProxyHeaders = app => net.createServer(socket => {
   socket.resume();
 });
 
-const PORT = 5555;
 
 module.exports = async t => {
 
   const httpsConfig = await createCert({ days: 1, selfSigned: true })
     .then(d => { return { key: d.serviceKey, cert: d.certificate }; });
 
-  const httpServer = http.createServer((req,res) => res.end('OK'));
-  const httpsServer = https.createServer(httpsConfig, (req,res) => res.end('OK'));
+  const httpResponse = (req,res) => res.writeHead(200) && res.end('OK');
+  const httpServer = http.createServer(httpResponse);
+  const httpsServer = https.createServer(httpsConfig, httpResponse);
 
   t.test('returns a net.Server instance', async (t) => {
     t.type(proxyproto.createServer(httpServer), 'Server');
@@ -133,6 +137,45 @@ module.exports = async t => {
     t.notOk(server.listening);
     t.same(proxied.address().port, PORT);
     proxied.close();
+  });
+
+  t.test('load test vanilla server', async (t) => {
+    await new Promise(resolve => {
+      const server = httpsServer;
+      server.listen(PORT);
+      autocannon(autocannonConfig, (err, result) => {
+        t.notOk(err);
+        t.same(result.non2xx, 0);
+        server.close();
+        resolve();
+      });
+    });
+  });
+
+  t.test('load test proxied server', async (t) => {
+    await new Promise(resolve => {
+      const server = proxyproto.createServer(httpsServer);
+      server.listen(PORT);
+      autocannon(autocannonConfig, (err, result) => {
+        t.notOk(err);
+        t.same(result.non2xx, 0);
+        server.close();
+        resolve();
+      });
+    });
+  });
+
+  t.test('load test injected proxied server', async (t) => {
+    await new Promise(resolve => {
+      const server = injectProxyHeaders(proxyproto.createServer(httpsServer));
+      server.listen(PORT);
+      autocannon(autocannonConfig, (err, result) => {
+        t.notOk(err);
+        t.same(result.non2xx, 0);
+        server.close();
+        resolve();
+      });
+    });
   });
 
 };

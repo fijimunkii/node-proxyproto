@@ -19,9 +19,9 @@ const createServer = (server, options) => {
     if (options.handleCommonErrors) {
       const error = String(err);
       if (err && err.code === 'ECONNRESET') {
-        return console.log(`${source} Connection interrupted`);
+        return;
       } else if (error.includes('SSL routines')) {
-        return console.log(`${source} Connection dropped - ssl routines failed: ${error}`);
+        return;
       }
     }
     if (options.onError) {
@@ -62,7 +62,8 @@ const createServer = (server, options) => {
         const details = parser.decode(data.slice(0,proxyProtoLength));
         ['remoteAddress','remotePort'].forEach(property => {
           Object.defineProperty(socket, property, {
-              get: () => details[property]
+              get: () => details[property],
+              configurable: true
             });
         });
         data = data.slice(proxyProtoLength);
@@ -92,7 +93,8 @@ const createServer = (server, options) => {
     server.on('secureConnection', socket => {
       ['remoteAddress','remotePort'].forEach(property => {
         Object.defineProperty(socket, property, {
-            get: () => socket._parent[property]
+            get: () => socket._parent[property],
+            configurable: true
           });
         });
       socket.addListener('error', err => onError(err, 'secure socket'));
