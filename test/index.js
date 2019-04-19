@@ -146,6 +146,7 @@ module.exports = async t => {
     proxied.close();
   });
 
+  // first load test has ~.2ms added latency
   t.test('load test vanilla server', async (t) => {
     await new Promise(resolve => {
       const server = httpsServer;
