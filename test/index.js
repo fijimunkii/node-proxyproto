@@ -154,6 +154,7 @@ module.exports = async t => {
       autocannon(autocannonConfig, (err, result) => {
         t.notOk(err);
         t.same(result.non2xx, 0);
+        t.notEqual(result['2xx'], 0);
         server.close();
         resolve();
       });
@@ -167,6 +168,7 @@ module.exports = async t => {
       autocannon(autocannonConfig, (err, result) => {
         t.notOk(err);
         t.same(result.non2xx, 0);
+        t.notEqual(result['2xx'], 0);
         server.close();
         resolve();
       });
@@ -180,6 +182,7 @@ module.exports = async t => {
       autocannon(autocannonConfig, (err, result) => {
         t.notOk(err);
         t.same(result.non2xx, 0);
+        t.notEqual(result['2xx'], 0);
         server.close();
         resolve();
       });
