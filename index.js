@@ -22,6 +22,8 @@ const createServer = (server, options) => {
         return;
       } else if (error.includes('SSL routines')) {
         return;
+      } else if (error.includes('TLS handshake timeout')) {
+        return;
       }
     }
     if (options.onError) {
