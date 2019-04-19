@@ -3,7 +3,7 @@ Pre-process PROXY protocol headers from node tcp sockets
 
 [![License: ISC](https://img.shields.io/npm/l/proxyproto.svg)](https://opensource.org/licenses/ISC)
 
-This will allow a regular node server to accept PROXY protocol connections
+This will allow a regular node server to accept PROXY protocol v2 connections
 
 Just pass in your server to get running:
 
@@ -24,6 +24,10 @@ require('proxyproto').createServer(server, {
   onError: err => log.error(err) // error handler for servers and sockets
 });
 ```
+
+## Performance
+
+Load test shows neglible latency difference with a vanilla http server
 
 ## Authors
 
