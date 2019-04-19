@@ -32,7 +32,14 @@ module.exports = async t => {
   const httpsConfig = await createCert({ days: 1, selfSigned: true })
     .then(d => { return { key: d.serviceKey, cert: d.certificate }; });
 
-  const httpResponse = (req,res) => res.writeHead(200) && res.end('OK');
+  const httpResponse = (req,res) => {
+    const body = 'OK';
+    res.writeHead(200, {
+      'Content-Length': Buffer.byteLength(body),
+      'Content-Type': 'text/plain'
+    });
+    res.end(body);
+  };
   const httpServer = http.createServer(httpResponse);
   const httpsServer = https.createServer(httpsConfig, httpResponse);
 
@@ -139,6 +146,7 @@ module.exports = async t => {
     proxied.close();
   });
 
+  // first load test has ~.2ms added latency
   t.test('load test vanilla server', async (t) => {
     await new Promise(resolve => {
       const server = httpsServer;
