@@ -106,7 +106,7 @@ const createServer = (server, options) => {
       }
     });
   } else {
-   server.on('socket', socket => {
+   server.on('connection', socket => {
      socket.addListener('error', err => onError(err, 'socket'));
    });
   }
