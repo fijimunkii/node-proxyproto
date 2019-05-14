@@ -20,6 +20,8 @@ const createServer = (server, options) => {
       const error = String(err);
       if (err && err.code === 'ECONNRESET') {
         return;
+      } else if (err && err.code === 'EPIPE') {
+        return;
       } else if (error.includes('SSL routines')) {
         return;
       } else if (error.includes('TLS handshake timeout')) {
