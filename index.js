@@ -14,7 +14,10 @@ const createServer = (server, options) => {
     options.handleCommonErrors = true;
   }
 
-  function onError(err, source) {
+  function onError(err, source, socket) {
+    if (socket) {
+      socket.end();
+    }
     // handle common socket errors
     if (options.handleCommonErrors) {
       const errCodes = new Set(['ECONNRESET', 'EPIPE', 'HPE_INVALID_EOF_STATE', 'HPE_HEADER_OVERFLOW']);
@@ -48,7 +51,7 @@ const createServer = (server, options) => {
     if (options.setNoDelay) {
       socket.setNoDelay(true); // disable nagle algorithm
     }
-    socket.addListener('error', err => onError(err, 'proxyproto socket'));
+    socket.addListener('error', err => onError(err, 'proxyproto socket', socket));
     socket.addListener('data', onData);
     function onData(buffer) {
       socket.pause();
@@ -105,7 +108,7 @@ const createServer = (server, options) => {
             configurable: true
           });
         });
-      socket.addListener('error', err => onError(err, 'secure socket'));
+      socket.addListener('error', err => onError(err, 'secure socket', socket));
       socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
       if (options.setNoDelay) {
         socket.setNoDelay(true); // disable nagle algorithm
