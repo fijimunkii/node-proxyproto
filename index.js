@@ -23,6 +23,7 @@ const createServer = (server, options) => {
 
   function onError(err, source, socket) {
     if (socket) {
+      server.emit(server._sharedCreds?'tlsClientError':'clientError', err, socket);
       closeSocket(socket);
     }
     // handle common network errors
