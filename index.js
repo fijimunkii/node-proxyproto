@@ -15,13 +15,9 @@ const createServer = (server, options) => {
   }
 
   function closeSocket(socket) {
-    socket.unref();
-    socket.end();
-    socket.destroy();
-    if (socket._parent) {
-      socket._parent.unref();
-      socket._parent.end();
-      socket._parent.destroy();
+    for (let s = socket; s !== null; s = s._parent) {
+      s.unref();
+      s.destroy();
     }
   }
 
