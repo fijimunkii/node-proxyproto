@@ -14,11 +14,22 @@ const createServer = (server, options) => {
     options.handleCommonErrors = true;
   }
 
+  function closeSocket(socket) {
+    socket.unref();
+    socket.end();
+    socket.destroy();
+    if (socket._parent) {
+      socket._parent.unref();
+      socket._parent.end();
+      socket._parent.destroy();
+    }
+  }
+
   function onError(err, source, socket) {
     if (socket) {
-      socket.end();
+      closeSocket(socket);
     }
-    // handle common socket errors
+    // handle common network errors
     if (options.handleCommonErrors) {
       const errCodes = new Set(['ECONNRESET', 'EPIPE', 'HPE_INVALID_EOF_STATE', 'HPE_HEADER_OVERFLOW']);
       if (err && err.code && errCodes.has(err.code)) {
@@ -50,6 +61,9 @@ const createServer = (server, options) => {
     socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
     if (options.setNoDelay) {
       socket.setNoDelay(true); // disable nagle algorithm
+    }
+    if (server.timeout) {
+      socket.setTimeout(server.timeout, () => closeSocket(socket));
     }
     socket.addListener('error', err => onError(err, 'proxyproto socket', socket));
     socket.addListener('data', onData);
@@ -112,6 +126,9 @@ const createServer = (server, options) => {
       socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
       if (options.setNoDelay) {
         socket.setNoDelay(true); // disable nagle algorithm
+      }
+      if (server.timeout) {
+        socket.setTimeout(server.timeout, () => closeSocket(socket));
       }
     });
   } else {
