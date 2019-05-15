@@ -14,6 +14,18 @@ const createServer = (server, options) => {
     options.handleCommonErrors = true;
   }
 
+  function prepareSocket(socket, name) {
+    socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
+    if (options.setNoDelay) {
+      socket.setNoDelay(true); // disable nagle algorithm
+    }
+    if (server.timeout) {
+      socket.setTimeout(server.timeout, () => closeSocket(socket));
+    }
+    socket.addListener('close', () => closeSocket(socket));
+    socket.addListener('error', err => onError(err, name, socket));
+  }
+
   function closeSocket(socket) {
     for (let s = socket; s !== null; s = s._parent) {
       s.unref();
@@ -55,14 +67,7 @@ const createServer = (server, options) => {
     let bytesRead = 0;
     let proxyProtoLength;
     let isProxyProto;
-    socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
-    if (options.setNoDelay) {
-      socket.setNoDelay(true); // disable nagle algorithm
-    }
-    if (server.timeout) {
-      socket.setTimeout(server.timeout, () => closeSocket(socket));
-    }
-    socket.addListener('error', err => onError(err, 'proxyproto socket', socket));
+    prepareSocket(socket, 'proxyproto socket');
     socket.addListener('data', onData);
     function onData(buffer) {
       socket.pause();
@@ -119,18 +124,11 @@ const createServer = (server, options) => {
             configurable: true
           });
         });
-      socket.addListener('error', err => onError(err, 'secure socket', socket));
-      socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
-      if (options.setNoDelay) {
-        socket.setNoDelay(true); // disable nagle algorithm
-      }
-      if (server.timeout) {
-        socket.setTimeout(server.timeout, () => closeSocket(socket));
-      }
+      prepareSocket(socket, 'secure socket');
     });
   } else {
    server.on('connection', socket => {
-     socket.addListener('error', err => onError(err, 'socket'));
+     prepareSocket(socket, 'socket');
    });
   }
 
