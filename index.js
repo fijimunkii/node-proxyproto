@@ -17,14 +17,12 @@ const createServer = (server, options) => {
   function onError(err, source) {
     // handle common socket errors
     if (options.handleCommonErrors) {
-      const error = String(err);
-      if (err && err.code === 'ECONNRESET') {
+      const errCodes = new Set(['ECONNRESET', 'EPIPE', 'HPE_INVALID_EOF_STATE', 'HPE_HEADER_OVERFLOW']);
+      if (err && err.code && errCodes.has(err.code)) {
         return;
-      } else if (err && err.code === 'EPIPE') {
-        return;
-      } else if (error.includes('SSL routines')) {
-        return;
-      } else if (error.includes('TLS handshake timeout')) {
+      }
+      const errRegex = /SSL\sroutines|TLS\shandshake/;
+      if (errRegex.test(String(err))) {
         return;
       }
     }
