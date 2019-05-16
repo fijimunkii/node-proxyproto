@@ -189,6 +189,8 @@ module.exports = async t => {
     });
   });
 
+  t.test('handleCommonErrors - handles common network errors');
+
 };
 
 if (!module.parent) module.exports(require('tap'));
