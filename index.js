@@ -115,7 +115,7 @@ const createServer = (server, options) => {
   if (server.listening) {
     const port = server.address().port;
     server.close();
-    proxied.listen(port, () => `PROXY protocol parser listening to port ${port}`);
+    proxied.listen(port, () => console.log(`PROXY protocol parser listening to port ${port}`));
   }
 
   return proxied;
