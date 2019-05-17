@@ -7,6 +7,7 @@ const proxyprotoHeader = Buffer.from('0d0a0d0a000d0a515549540a211100542399e1ca0a
 const PORT = 5555;
 
 const net = require('net');
+const tls = require('tls');
 const http = require('http');
 const https = require('https');
 const createCert = require('util').promisify(require('pem').createCertificate);
@@ -189,7 +190,119 @@ module.exports = async t => {
     });
   });
 
-  t.test('handleCommonErrors - handles common network errors');
+  t.test('handleCommonErrors - ECONNRESET', async (t) => {
+    await new Promise(resolve => {
+      let shouldNotErr = true;
+      const server = proxyproto.createServer(httpsServer, {
+        onError: () => shouldNotErr = false
+      });
+      server.listen(PORT);
+      const client = net.connect(PORT, () => {
+        client.destroy();
+        setTimeout(() => {
+          t.ok(shouldNotErr);
+          server.close();
+          resolve();
+        });
+      });
+    });
+  });
+
+  t.test('handleCommonErrors - EPIPE', async (t) => {
+    await new Promise(resolve => {
+      let shouldNotErr = true;
+      const server = net.createServer(socket =>
+        socket.on('end', () => {
+          socket.write('foo\n');
+          socket.end();
+        }));
+      const proxied = proxyproto.createServer(server, {
+        onError: () => shouldNotErr = false
+      });
+      proxied.listen(PORT);
+      const client = net.connect(PORT, () => {
+        client.end('yolo');
+        setTimeout(() => {
+          t.ok(shouldNotErr);
+          proxied.close();
+          resolve();
+        });
+      });
+    });
+  });
+
+  t.test('handleCommonErrors - HPE_INVALID_EOF_STATE', async (t) => {
+    await new Promise(resolve => {
+      let shouldNotErr = true;
+      const server = proxyproto.createServer(httpServer, {
+        onError: () => shouldNotErr = false
+      });
+      server.listen(PORT);
+      const client = net.connect(PORT, () => {
+        client.write('GET /foo HTTP/1.1\r\nContent-Length:');
+        client.end();
+        setTimeout(() => {
+          t.ok(shouldNotErr);
+          server.close();
+          resolve();
+        });
+      });
+    });
+  });
+
+  t.test('handleCommonErrors - HPE_HEADER_OVERFLOW', async (t) => {
+    await new Promise(resolve => {
+      let shouldNotErr = true;
+      const server = proxyproto.createServer(httpServer, {
+        onError: () => shouldNotErr = false
+      });
+      server.listen(PORT);
+      const client = net.connect(PORT, () => {
+        const CRLF = '\r\n';
+        const DUMMY_HEADER_NAME = 'Cookie: ';
+        const DUMMY_HEADER_VALUE = 'a'.repeat(
+          http.maxHeaderSize - DUMMY_HEADER_NAME.length - (2 * CRLF.length) + 1
+        );
+        const PAYLOAD = 'GET /foo HTTP/1.1' + CRLF +
+          DUMMY_HEADER_NAME + DUMMY_HEADER_VALUE + CRLF.repeat(2);
+        client.write(PAYLOAD);
+        client.end();
+        setTimeout(() => {
+          t.ok(shouldNotErr);
+          server.close();
+          resolve();
+        });
+      });
+    });
+  });
+
+  t.test('handleCommonErrors - SSL routines', async (t) => {
+    await new Promise(resolve => {
+      let shouldNotErr = true;
+      const server = tls.createServer(httpsConfig, socket => socket.pipe(socket));
+      const proxied = proxyproto.createServer(server, {
+        onError: () => shouldNotErr = false
+      });
+      server.listen(PORT);
+      const socket = net.connect(PORT);
+      const client = tls.connect({
+        socket,
+        rejectUnauthorized: false
+      }, () => {
+        const BAD_RECORD = Buffer.from([0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+        client.write('x');
+        client.on('error', () => { /* ignore client error */ });
+        client.on('data', () => {
+          socket.end(BAD_RECORD);
+          setTimeout(() => {
+            t.ok(shouldNotErr);
+            server.close();
+            resolve();
+          });
+        });
+      });
+    });
+  });
 
 };
 
