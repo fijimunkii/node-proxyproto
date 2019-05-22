@@ -33,7 +33,7 @@ const createServer = (server, options) => {
 
   function onError(err, source, socket) {
     if (socket) {
-      closeSocket(err, socket);
+      closeSocket(socket, err);
     }
     // handle common network errors
     if (options.handleCommonErrors) {
