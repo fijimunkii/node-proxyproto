@@ -22,21 +22,18 @@ const createServer = (server, options) => {
     if (server.timeout) {
       socket.setTimeout(server.timeout, () => closeSocket(socket));
     }
-    socket.addListener('close', () => closeSocket(socket));
     socket.addListener('error', err => onError(err, name, socket));
   }
 
-  function closeSocket(socket) {
-    for (let s = socket; s !== null; s = s._parent) {
-      s.unref();
-      s.destroy();
-    }
+  function closeSocket(socket, err) {
+    // let the server destroy the connection
+    // https://github.com/nodejs/node/blob/c30ef3cbd2e42ac1d600f6bd78a601a5496b0877/lib/https.js#L69
+    server.emit(server._sharedCreds?'tlsClientError':'clientError', err, socket);
   }
 
   function onError(err, source, socket) {
     if (socket) {
-      server.emit(server._sharedCreds?'tlsClientError':'clientError', err, socket);
-      closeSocket(socket);
+      closeSocket(err, socket);
     }
     // handle common network errors
     if (options.handleCommonErrors) {
