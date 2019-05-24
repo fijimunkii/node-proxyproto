@@ -323,6 +323,22 @@ module.exports = async t => {
     });
   });
 
+  t.test('closes the proxyproto socket', async (t) => {
+    await new Promise(resolve => {
+      let socket;
+      const proxied = proxyproto.createServer(httpServer);
+      proxied.on('connection', socket => {
+        socket.on('close', err => {
+          t.notOk(err);
+          proxied.close();
+          resolve();
+        });
+      });
+      proxied.listen(PORT);
+      http.get(`http://localhost:${PORT}`, httpRequestOptions);
+    });
+  });
+
 };
 
 if (!module.parent) module.exports(require('tap'));
