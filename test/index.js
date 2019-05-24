@@ -283,7 +283,7 @@ module.exports = async t => {
       const proxied = proxyproto.createServer(server, {
         onError: () => shouldNotErr = false
       });
-      server.listen(PORT);
+      proxied.listen(PORT);
       const socket = net.connect(PORT);
       const client = tls.connect({
         socket,
@@ -296,7 +296,7 @@ module.exports = async t => {
           socket.end(BAD_RECORD);
           setTimeout(() => {
             t.ok(shouldNotErr);
-            server.close();
+            proxied.close();
             resolve();
           });
         });
