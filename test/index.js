@@ -325,7 +325,6 @@ module.exports = async t => {
 
   t.test('closes the proxyproto socket', async (t) => {
     await new Promise(resolve => {
-      let socket;
       const proxied = proxyproto.createServer(httpServer);
       proxied.on('connection', socket => {
         socket.on('close', err => {
