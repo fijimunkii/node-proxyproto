@@ -138,13 +138,32 @@ module.exports = async t => {
   });
 
   t.test('listening port is re-used', async (t) => {
-    const server = http.createServer();
-    server.listen(PORT);
-    const proxied = proxyproto.createServer(server);
-    t.ok(proxied.listening);
-    t.notOk(server.listening);
-    t.same(proxied.address().port, PORT);
-    proxied.close();
+    await new Promise(resolve => {
+      const server = http.createServer();
+      server.listen(PORT, () => {
+        const proxied = proxyproto.createServer(server);
+        t.ok(proxied.listening);
+        t.notOk(server.listening);
+        t.same(proxied.address().port, PORT);
+        proxied.close();
+        resolve();
+      });
+    });
+  });
+
+  t.test('listening event is listened to', async (t) => {
+    await new Promise(resolve => {
+      const server = http.createServer();
+      const proxied = proxyproto.createServer(server);
+      proxied.on('listening', () => {
+        t.ok(proxied.listening);
+        t.notOk(server.listening);
+        t.same(proxied.address().port, PORT);
+        proxied.close();
+        resolve();
+      });
+      server.listen(PORT);
+    });
   });
 
   // first load test has ~.2ms added latency
