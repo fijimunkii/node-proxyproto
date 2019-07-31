@@ -32,6 +32,12 @@ const createServer = (server, options) => {
     throw err;
   }
 
+  function listen(proxy, server) {
+    const port = server.address().port;
+    server.close();
+    proxied.listen(port, () => console.log(`PROXY protocol parser listening to port ${port}`));
+  }
+
   // create proxy protocol processing server
   const proxied = require('net').createServer(socket => {
     const buf = [];
@@ -111,11 +117,11 @@ const createServer = (server, options) => {
    });
   }
 
+  // listen to listening event
+  server.on('listening', () => listen(proxied, server));
   // if server is already listening, use that port
   if (server.listening) {
-    const port = server.address().port;
-    server.close();
-    proxied.listen(port, () => console.log(`PROXY protocol parser listening to port ${port}`));
+    listen(proxied, server);
   }
 
   return proxied;
