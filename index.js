@@ -14,8 +14,28 @@ const createServer = (server, options) => {
     options.handleCommonErrors = true;
   }
 
-  function onError(err, source) {
-    // handle common socket errors
+  function prepareSocket(socket, name) {
+    socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
+    if (options.setNoDelay) {
+      socket.setNoDelay(true); // disable nagle algorithm
+    }
+    if (server.timeout) {
+      socket.setTimeout(server.timeout, () => closeSocket(socket));
+    }
+    socket.addListener('error', err => onError(err, name, socket));
+  }
+
+  function closeSocket(socket, err) {
+    // let the server destroy the connection
+    // https://github.com/nodejs/node/blob/c30ef3cbd2e42ac1d600f6bd78a601a5496b0877/lib/https.js#L69
+    server.emit(server._sharedCreds?'tlsClientError':'clientError', err, socket);
+  }
+
+  function onError(err, source, socket) {
+    if (socket) {
+      closeSocket(socket, err);
+    }
+    // handle common network errors
     if (options.handleCommonErrors) {
       const errCodes = new Set(['ECONNRESET', 'EPIPE', 'HPE_INVALID_EOF_STATE', 'HPE_HEADER_OVERFLOW']);
       if (err && err.code && errCodes.has(err.code)) {
@@ -44,11 +64,7 @@ const createServer = (server, options) => {
     let bytesRead = 0;
     let proxyProtoLength;
     let isProxyProto;
-    socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
-    if (options.setNoDelay) {
-      socket.setNoDelay(true); // disable nagle algorithm
-    }
-    socket.addListener('error', err => onError(err, 'proxyproto socket'));
+    prepareSocket(socket, 'proxyproto socket');
     socket.addListener('data', onData);
     function onData(buffer) {
       socket.pause();
@@ -105,15 +121,11 @@ const createServer = (server, options) => {
             configurable: true
           });
         });
-      socket.addListener('error', err => onError(err, 'secure socket'));
-      socket.setKeepAlive(true); // prevent idle timeout ECONNRESET
-      if (options.setNoDelay) {
-        socket.setNoDelay(true); // disable nagle algorithm
-      }
+      prepareSocket(socket, 'secure socket');
     });
   } else {
    server.on('connection', socket => {
-     socket.addListener('error', err => onError(err, 'socket'));
+     prepareSocket(socket, 'socket');
    });
   }
 
