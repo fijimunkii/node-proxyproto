@@ -111,11 +111,16 @@ const createServer = (server, options) => {
    });
   }
 
-  // if server is already listening, use that port
-  if (server.listening) {
+  // listen to listening event
+  function listen() {
     const port = server.address().port;
     server.close();
     proxied.listen(port, () => console.log(`PROXY protocol parser listening to port ${port}`));
+  }
+  server.on('listening', listen);
+  // if server is already listening, use that port
+  if (server.listening) {
+    listen();
   }
 
   return proxied;
