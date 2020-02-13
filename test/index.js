@@ -1,6 +1,8 @@
 const proxyproto = require('../index');
 
 // TODO: generate header
+// rewrite dep lib which has sec vulns
+// update for node 12, 13
 // - proxy-protocol-v2 encode has a bug
 const proxyprotoHeader = Buffer.from('0d0a0d0a000d0a515549540a211100542399e1ca0a002485cb3201bb030004c4fb1a1b04003e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', 'hex');
 
