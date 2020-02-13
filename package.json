@@ -1,6 +1,6 @@
 {
   "name": "proxyproto",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Pre-process PROXY protocol headers from node tcp sockets",
   "main": "index.js",
   "scripts": {
